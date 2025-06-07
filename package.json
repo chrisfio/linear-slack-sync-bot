@@ -1,0 +1,22 @@
+{
+  "name": "slack-bot",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "Linear-Slack sync bot",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.17.1",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1"
+  }
+}
