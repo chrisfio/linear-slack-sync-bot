@@ -1,5 +1,6 @@
 const { App } = require('@slack/bolt');
 const axios = require('axios');
+const http = require('http');
 require('dotenv').config();
 
 // Initialize your app with your bot token and signing secret
@@ -141,8 +142,29 @@ app.event('app_mention', async ({ event, say }) => {
   await say(`Hello <@${event.user}>! I'm automatically syncing unsynced Linear issues with Slack threads.`);
 });
 
+// Create a simple HTTP server for Railway health checks
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy', 
+      service: 'linear-slack-sync-bot',
+      timestamp: new Date().toISOString()
+    }));
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Linear-Slack Sync Bot is running! 🤖');
+  }
+});
+
 // Start your app
 (async () => {
   await app.start();
   console.log('⚡️ Linear-Slack sync bot is running in production mode!');
+  
+  // Start HTTP server for Railway
+  const port = process.env.PORT || 3000;
+  server.listen(port, () => {
+    console.log(`🌐 HTTP server listening on port ${port} for Railway health checks`);
+  });
 })();
