@@ -38,10 +38,7 @@ async function getLinearIssueId(issueNumber) {
     }
     return null;
   } catch (error) {
-    console.error('❌ Error fetching Linear issue:', error.message);
-    if (error.response) {
-      console.error('❌ Response data:', error.response.data);
-    }
+    console.error('❌ Error fetching Linear issue:', issueNumber, error.message);
     return null;
   }
 }
@@ -73,11 +70,9 @@ async function syncLinearIssueWithSlack(issueId, slackUrl) {
       }
     });
 
-    console.log('🔍 Full response:', JSON.stringify(response.data, null, 2));
-
     // Check for GraphQL errors
     if (response.data.errors) {
-      console.error('❌ GraphQL errors:', response.data.errors);
+      console.error('❌ Linear API errors for issue:', issueId, response.data.errors);
       return null;
     }
 
@@ -85,92 +80,69 @@ async function syncLinearIssueWithSlack(issueId, slackUrl) {
       return response.data.data.attachmentLinkSlack;
     }
 
-    console.error('❌ Unexpected response structure:', response.data);
+    console.error('❌ Unexpected Linear API response for issue:', issueId);
     return null;
   } catch (error) {
-    console.error('❌ Error syncing Linear issue with Slack:', error.message);
-    if (error.response) {
-      console.error('❌ Response data:', error.response.data);
-    }
+    console.error('❌ Error syncing Linear issue with Slack:', issueId, error.message);
     return null;
   }
 }
 
-// Listen for ALL messages (for debugging)
+// Listen for messages - optimized for production
 app.message(async ({ message, say }) => {
-  console.log('Message received:', {
-    text: message.text,
-    user: message.user,
-    bot_id: message.bot_id,
-    username: message.username,
-    app_id: message.app_id
-  });
-
-  // Only look for UNSYNCED Linear messages (Type 2 - no syncThreadAfterCreation)
+  // Only process unsynced Linear messages (Type 2)
   if (message.bot_id === 'B08V7MLLTHV') {
-    console.log('🚨 UNSYNCED LINEAR ISSUE DETECTED!');
+    console.log('🚨 Unsynced Linear issue detected');
     
     // Extract issue information from attachments
     if (message.attachments && message.attachments[0] && message.attachments[0].blocks) {
       const sectionBlock = message.attachments[0].blocks.find(block => block.type === 'section');
       if (sectionBlock && sectionBlock.text && sectionBlock.text.text) {
         const issueLink = sectionBlock.text.text;
-        console.log('🔗 Issue Link:', issueLink);
         
-        // Extract issue number and title from the link
+        // Extract issue number from the link
         const linkMatch = issueLink.match(/\|([^>]+)>/);
         if (linkMatch) {
-          const issueInfo = linkMatch[1]; // e.g., "EAR-26 testing26"
-          console.log('📋 Issue Info:', issueInfo);
-          
-          // Extract just the issue number
+          const issueInfo = linkMatch[1];
           const issueNumberMatch = issueInfo.match(/^([A-Z]+-\d+)/);
+          
           if (issueNumberMatch) {
-            const issueNumber = issueNumberMatch[1]; // e.g., "EAR-26"
-            console.log('🎯 Issue Number:', issueNumber);
+            const issueNumber = issueNumberMatch[1];
+            console.log('🎯 Processing issue:', issueNumber);
             
             // Get the Linear issue ID
-            console.log('🔍 Fetching Linear issue details...');
             const linearIssue = await getLinearIssueId(issueNumber);
             
             if (linearIssue) {
-              console.log('✅ Found Linear issue:', linearIssue.id);
-              
               // Create Slack thread URL with workspace-specific format
-              // Linear expects workspace.slack.com format, not slack.com/archives
               const slackUrl = `https://${process.env.SLACK_WORKSPACE_NAME}.slack.com/archives/${message.channel}/p${message.ts.replace('.', '')}`;
-              console.log('🔗 Slack URL:', slackUrl);
               
               // Sync the issue with Slack
-              console.log('🔄 Syncing Linear issue with Slack thread...');
               const syncResult = await syncLinearIssueWithSlack(linearIssue.id, slackUrl);
               
               if (syncResult && syncResult.success) {
-                console.log('🎉 Successfully synced Linear issue with Slack!');
-                console.log('📎 Attachment ID:', syncResult.attachment.id);
+                console.log('✅ Successfully synced:', issueNumber, '→ Slack thread');
               } else {
-                console.log('❌ Failed to sync Linear issue with Slack');
+                console.log('❌ Failed to sync:', issueNumber);
               }
             } else {
-              console.log('❌ Could not find Linear issue with number:', issueNumber);
+              console.log('❌ Linear issue not found:', issueNumber);
             }
           }
         }
       }
     }
-    
-    console.log('==========================================');
   }
 });
 
 // Listen for messages that mention our bot
 app.event('app_mention', async ({ event, say }) => {
-  console.log('Bot was mentioned:', event.text);
-  await say(`Hello <@${event.user}>! I'm listening for Linear bot messages and automatically syncing them with Slack threads.`);
+  console.log('👋 Bot mentioned by user:', event.user);
+  await say(`Hello <@${event.user}>! I'm automatically syncing unsynced Linear issues with Slack threads.`);
 });
 
 // Start your app
 (async () => {
   await app.start();
-  console.log('⚡️ Bolt app is running!');
+  console.log('⚡️ Linear-Slack sync bot is running in production mode!');
 })();
