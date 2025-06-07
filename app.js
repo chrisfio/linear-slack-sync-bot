@@ -142,29 +142,91 @@ app.event('app_mention', async ({ event, say }) => {
   await say(`Hello <@${event.user}>! I'm automatically syncing unsynced Linear issues with Slack threads.`);
 });
 
-// Create a simple HTTP server for Railway health checks
+// Track application state
+let isReady = false;
+
+// Create a robust HTTP server for Railway
 const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
+  // Set CORS headers for Railway
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  if (req.url === '/health' || req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
-      status: 'healthy', 
+      status: isReady ? 'healthy' : 'starting',
       service: 'linear-slack-sync-bot',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
     }));
+  } else if (req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`
+      <html>
+        <head><title>Linear-Slack Sync Bot</title></head>
+        <body>
+          <h1>🤖 Linear-Slack Sync Bot</h1>
+          <p>Status: ${isReady ? '✅ Running' : '⏳ Starting...'}</p>
+          <p>Uptime: ${Math.floor(process.uptime())} seconds</p>
+          <a href="/health">Health Check</a>
+        </body>
+      </html>
+    `);
   } else {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Linear-Slack Sync Bot is running! 🤖');
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   }
 });
 
+// Graceful shutdown handling
+const gracefulShutdown = (signal) => {
+  console.log(`🔄 Received ${signal}, shutting down gracefully...`);
+  isReady = false;
+  
+  server.close(() => {
+    console.log('🌐 HTTP server closed');
+    app.stop?.().then(() => {
+      console.log('⚡️ Slack app stopped');
+      process.exit(0);
+    }).catch(() => {
+      process.exit(1);
+    });
+  });
+  
+  // Force exit after 10 seconds
+  setTimeout(() => {
+    console.log('⏰ Force shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+// Handle shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 // Start your app
 (async () => {
-  await app.start();
-  console.log('⚡️ Linear-Slack sync bot is running in production mode!');
-  
-  // Start HTTP server for Railway
-  const port = process.env.PORT || 3000;
-  server.listen(port, () => {
-    console.log(`🌐 HTTP server listening on port ${port} for Railway health checks`);
-  });
+  try {
+    await app.start();
+    console.log('⚡️ Linear-Slack sync bot is running in production mode!');
+    
+    // Start HTTP server for Railway
+    const port = process.env.PORT || 3000;
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`🌐 HTTP server listening on port ${port} for Railway health checks`);
+      isReady = true;
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start bot:', error);
+    process.exit(1);
+  }
 })();
