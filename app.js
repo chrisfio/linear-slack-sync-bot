@@ -3,6 +3,14 @@ const axios = require('axios');
 const http = require('http');
 require('dotenv').config();
 
+// Configure Linear bot IDs that need syncing
+// Add new bot IDs here as Linear creates different alert types
+const UNSYNCED_LINEAR_BOT_IDS = [
+  'B0909FPEHJS',  // Current unsynced Linear alert bot (Dec 2024)
+  'B08V7MLLTHV',  // Previous unsynced Linear alert bot
+  // 'B0901MLEDJP' // This is the synced Linear bot - DO NOT include
+];
+
 // Initialize your app with your bot token and signing secret
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -91,9 +99,9 @@ async function syncLinearIssueWithSlack(issueId, slackUrl) {
 
 // Listen for messages - optimized for production
 app.message(async ({ message, say }) => {
-  // Only process unsynced Linear messages (Type 2)
-  if (message.bot_id === 'B08V7MLLTHV') {
-    console.log('🚨 Unsynced Linear issue detected');
+  // Only process unsynced Linear messages
+  if (UNSYNCED_LINEAR_BOT_IDS.includes(message.bot_id)) {
+    console.log('🚨 Unsynced Linear issue detected from bot:', message.bot_id);
     
     // Extract issue information from attachments
     if (message.attachments && message.attachments[0] && message.attachments[0].blocks) {
