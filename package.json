@@ -4,7 +4,10 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon app.js",
+    "debug": "node --inspect app.js",
+    "debug-break": "node --inspect-brk app.js",
+    "debug-dev": "nodemon --inspect app.js"
   },
   "keywords": [],
   "author": "",
@@ -12,11 +15,15 @@
   "type": "commonjs",
   "description": "Linear-Slack sync bot",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "dependencies": {
-    "@slack/bolt": "^3.17.1",
-    "axios": "^1.6.2",
-    "dotenv": "^16.3.1"
+    "@slack/bolt": "^4.1.0",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
