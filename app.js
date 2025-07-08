@@ -3,13 +3,11 @@ const axios = require('axios');
 const http = require('http');
 require('dotenv').config();
 
-// Configure Linear bot IDs that need syncing
-// Add new bot IDs here as Linear creates different alert types
-const UNSYNCED_LINEAR_BOT_IDS = [
-  'B0909FPEHJS',  // Current unsynced Linear alert bot (Dec 2024)
-  'B08V7MLLTHV',  // Previous unsynced Linear alert bot
-  // 'B0901MLEDJP' // This is the synced Linear bot - DO NOT include
-];
+// Configure Linear bot IDs that need syncing from environment variables
+// Add new bot IDs to the UNSYNCED_LINEAR_BOT_IDS environment variable as Linear creates different alert types
+const UNSYNCED_LINEAR_BOT_IDS = process.env.UNSYNCED_LINEAR_BOT_IDS 
+  ? process.env.UNSYNCED_LINEAR_BOT_IDS.split(',').map(id => id.trim())
+  : [];
 
 // Initialize your app with your bot token and signing secret
 const app = new App({

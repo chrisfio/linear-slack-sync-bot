@@ -59,6 +59,10 @@ SLACK_WORKSPACE_NAME=your-workspace-name
 # Linear Configuration
 LINEAR_API_KEY=lin_api_your-linear-api-key
 
+# Linear Bot IDs that need syncing (comma-separated)
+# Add new bot IDs here as Linear creates different alert types
+UNSYNCED_LINEAR_BOT_IDS=B0909FPEHJS,B08V7MLLTHV
+
 # Server Configuration (optional)
 PORT=3000
 ```
@@ -98,6 +102,7 @@ npm start
    railway variables:set SLACK_APP_TOKEN=xapp-your-token
    railway variables:set SLACK_WORKSPACE_NAME=your-workspace
    railway variables:set LINEAR_API_KEY=lin_api_your-key
+   railway variables:set UNSYNCED_LINEAR_BOT_IDS=B0909FPEHJS,B08V7MLLTHV
    ```
 
 3. **Deploy**:
@@ -127,6 +132,19 @@ The bot includes several monitoring endpoints:
 
 ## 🔧 Configuration
 
+### Adding New Linear Bot IDs
+
+When Linear creates new alert types or bot IDs that need syncing, you can add them to the `UNSYNCED_LINEAR_BOT_IDS` environment variable:
+
+1. **Find the Bot ID**: Check the Slack message details to find the bot ID (usually starts with `B`)
+2. **Update Environment Variable**: Add the new bot ID to your `.env` file:
+   ```env
+   UNSYNCED_LINEAR_BOT_IDS=B0909FPEHJS,B08V7MLLTHV,B_NEW_BOT_ID_HERE
+   ```
+3. **Restart the Bot**: Restart your application to pick up the new configuration
+
+**Note**: Do not include `B0901MLEDJP` as this is the synced Linear bot that doesn't need additional syncing.
+
 ### Required Environment Variables
 
 | Variable | Description | Example |
@@ -136,6 +154,7 @@ The bot includes several monitoring endpoints:
 | `SLACK_APP_TOKEN` | App-Level Token for Socket Mode | `xapp-1-A123-456-abc` |
 | `SLACK_WORKSPACE_NAME` | Your Slack workspace name | `mycompany` |
 | `LINEAR_API_KEY` | Personal API Key from Linear | `lin_api_abc123def456` |
+| `UNSYNCED_LINEAR_BOT_IDS` | Comma-separated Linear bot IDs that need syncing | `B0909FPEHJS,B08V7MLLTHV` |
 
 ### Optional Environment Variables
 
